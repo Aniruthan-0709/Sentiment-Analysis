@@ -1,0 +1,11 @@
+dask
+apache-airflow
+mlflow
+dvc
+kaggle
+pandas
+scikit-learn
+dotenv
+gcsfs
+tensorflow_data_validation --no-deps
+ipython
