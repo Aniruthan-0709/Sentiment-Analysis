@@ -9,3 +9,4 @@ dotenv
 gcsfs
 tensorflow_data_validation --no-deps
 ipython
+imbalanced-learn
