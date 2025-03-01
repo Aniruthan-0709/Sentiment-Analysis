@@ -18,8 +18,9 @@ python-dotenv
 
 # TensorFlow & Data Validation
 tensorflow
-tensorflow-data-validation --no-deps
+tensorflow-data-validation
 tensorflow-metadata
+
 
 # Imbalanced Data Handling
 imbalanced-learn
