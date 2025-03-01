@@ -13,7 +13,7 @@ airflow.db
 .dvc/cache/
 data/.dvc
 # Docker
-/docker-compose.override.yml
+/docker-compose.yml
 # MLFlow
 mlruns
 # Great Expectations
