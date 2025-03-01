@@ -25,14 +25,15 @@ services:
       - redis
     entrypoint: >
       /bin/bash -c "
-      pip install 'apache-airflow[celery]' &&
-      pip install 'apache-airflow-providers-redis' &&
+      pip install --no-cache-dir -r /requirements-mlops.txt &&
       airflow db init &&
       airflow db upgrade &&
-      airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin"
+      airflow users create --username admin --firstname Admin --lastname User --role Admin --email aniruthanhpe@gmail.com --password admin"
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    volumes:
+      - ./requirements-mlops.txt:/requirements-mlops.txt
 
   airflow-webserver:
     image: apache/airflow:latest
@@ -46,24 +47,25 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@postgres:5432/airflow
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
-      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
-      - AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.api.auth.backend.basic_auth
       - AIRFLOW__SMTP__SMTP_HOST=smtp.gmail.com
-      - AIRFLOW__SMTP__SMTP_PORT=587
-      - AIRFLOW__SMTP__SMTP_USER=your-email@gmail.com
-      - AIRFLOW__SMTP__SMTP_MAIL_FROM=your-email@gmail.com
       - AIRFLOW__SMTP__SMTP_STARTTLS=True
       - AIRFLOW__SMTP__SMTP_SSL=False
-      - AIRFLOW__SMTP__SMTP_PASSWORD=${AIRFLOW_APP_PASSWORD}  # Securely using .env
+      - AIRFLOW__SMTP__SMTP_PORT=587
+      - AIRFLOW__SMTP__SMTP_MAIL_FROM=aniruthanhpe@gmail.com
+      - AIRFLOW__SMTP__SMTP_USER=aniruthanhpe@gmail.com
+      - AIRFLOW__SMTP__SMTP_PASSWORD=${AIRFLOW_APP_PASSWORD}
     env_file:
       - .env
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
+      - ./requirements-mlops.txt:/requirements-mlops.txt
+      - "${REPO_PATH}/mlops_core:/opt/airflow/mlops_core"
+    command: >
+      bash -c "pip install --no-cache-dir -r /requirements-mlops.txt && airflow webserver"
     ports:
       - "8080:8080"
-    command: ["airflow", "webserver"]
 
   airflow-scheduler:
     image: apache/airflow:latest
@@ -73,11 +75,16 @@ services:
       - airflow-webserver
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    env_file:
+      - .env
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
-    command: ["airflow", "scheduler"]
+      - ./requirements-mlops.txt:/requirements-mlops.txt
+      - "${REPO_PATH}/mlops_core:/opt/airflow/mlops_core"
+    command: >
+      bash -c "pip install --no-cache-dir -r /requirements-mlops.txt && airflow scheduler"
 
   airflow-worker:
     image: apache/airflow:latest
@@ -91,11 +98,16 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
       - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@postgres:5432/airflow
+    env_file:
+      - .env
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
-    command: ["airflow", "celery", "worker"]
+      - ./requirements-mlops.txt:/requirements-mlops.txt
+      - "${REPO_PATH}/mlops_core:/opt/airflow/mlops_core"
+    command: >
+      bash -c "pip install --no-cache-dir -r /requirements-mlops.txt && airflow celery worker"
 
 volumes:
   postgres_data:

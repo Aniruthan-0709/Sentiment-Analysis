@@ -1,12 +1,31 @@
-dask
+# Core Libraries
+pandas
+numpy
+scikit-learn
+ipython
+logging
+sys
+
+# Airflow and MLOps
 apache-airflow
 mlflow
 dvc
-kaggle
-pandas
-scikit-learn
-dotenv
+
+# Cloud & Storage
 gcsfs
-tensorflow_data_validation --no-deps
-ipython
+dotenv  # This should be `python-dotenv`
+python-dotenv
+
+# TensorFlow & Data Validation
+tensorflow
+tensorflow-data-validation --no-deps
+tensorflow-metadata
+
+# Imbalanced Data Handling
 imbalanced-learn
+
+# Distributed Computing
+dask
+
+# Kaggle API
+kaggle
