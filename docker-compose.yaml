@@ -1,83 +1,66 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  airflow-webserver:
-    image: apache/airflow:2.7.1
-    container_name: airflow-webserver
-    restart: always
-    depends_on:
-      - airflow-postgres
-      - airflow-scheduler
-    environment:
-      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
-      - AIRFLOW__WEBSERVER__SECRET_KEY=mysecretkey
-      - _AIRFLOW_WWW_USER_USERNAME=admin
-      - _AIRFLOW_WWW_USER_PASSWORD=admin
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./dags:/opt/airflow/dags  # ✅ DAGs directory
-      - ./logs:/opt/airflow/logs  # ✅ Logs directory
-      - ./plugins:/opt/airflow/plugins  # ✅ Plugins directory
-    command: >
-      bash -c "airflow db upgrade &&
-               airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true &&
-               airflow webserver"
-
-  airflow-scheduler:
-    image: apache/airflow:2.7.1
-    container_name: airflow-scheduler
-    restart: always
-    depends_on:
-      - airflow-webserver
-      - airflow-worker
-    environment:
-      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
-    command: airflow scheduler
-
-  airflow-worker:
-    image: apache/airflow:2.7.1
-    container_name: airflow-worker
-    restart: always
-    depends_on:
-      - airflow-scheduler
-    environment:
-      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
-    command: airflow celery worker
-
-  airflow-postgres:
+  postgres:
     image: postgres:13
-    container_name: airflow-postgres
-    restart: always
     environment:
-      - POSTGRES_USER=airflow
-      - POSTGRES_PASSWORD=airflow
-      - POSTGRES_DB=airflow
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     ports:
       - "5432:5432"
-    volumes:
-      - airflow_db:/var/lib/postgresql/data
+    restart: always
 
   redis:
     image: redis:latest
-    container_name: redis
     restart: always
-    ports:
-      - "6379:6379"
 
-volumes:
-  airflow_db:
-  logs:
-  dags:
-  plugins:
+  airflow-webserver:
+    image: apache/airflow:latest
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags  # Dynamic DAGs Path
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    entrypoint: >
+      /bin/bash -c "pip install dvc &&
+      airflow db init &&
+      airflow webserver"
+    ports:
+      - "8080:8080"
+    command: ["airflow", "webserver"]
+
+  airflow-scheduler:
+    image: apache/airflow:latest
+    restart: always
+    depends_on:
+      - airflow-webserver
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    entrypoint: >
+      /bin/bash -c "pip install dvc &&
+      airflow scheduler"
+
+  airflow-worker:
+    image: apache/airflow:latest
+    restart: always
+    depends_on:
+      - airflow-webserver
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    entrypoint: >
+      /bin/bash -c "pip install dvc &&
+      airflow celery worker"

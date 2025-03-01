@@ -1,15 +1,20 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
+from airflow.operators.email import EmailOperator
 from datetime import datetime, timedelta
 import os
 
 # DAG Configuration
-DVC_REPO_PATH = "/opt/airflow/repo"  # Update this if needed
+DVC_REPO_PATH = os.getenv("DVC_REPO_PATH", "/opt/airflow/repo")  # Dynamically set DVC repo path
+EMAIL_RECIPIENT = "your-email@example.com"
+
 DEFAULT_ARGS = {
     "owner": "airflow",
     "depends_on_past": False,
     "start_date": datetime(2025, 2, 28),
+    "email_on_failure": True,
+    "email_on_retry": False,
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
 }
@@ -18,7 +23,7 @@ DEFAULT_ARGS = {
 dag = DAG(
     "mlops_pipeline",
     default_args=DEFAULT_ARGS,
-    description="MLops Pipeline with DVC-triggered execution",
+    description="MLOps Pipeline with DVC-triggered execution",
     schedule_interval=None,  # Manual Trigger + File Change Trigger
     catchup=False,
 )
@@ -95,6 +100,15 @@ dvc_commit_push = BashOperator(
     dag=dag,
 )
 
+# Task 9: Send Email Notification
+send_email = EmailOperator(
+    task_id="send_email",
+    to=EMAIL_RECIPIENT,
+    subject="MLOps Pipeline Completed ✅",
+    html_content="<h3>Your MLOps pipeline has successfully completed!</h3>",
+    dag=dag,
+)
+
 # **Task Dependencies**
 check_data >> dvc_pull >> data_ingestion >> data_preprocessing
-data_preprocessing >> schema_validation >> anomaly_detection >> bias_detection >> dvc_commit_push
+data_preprocessing >> schema_validation >> anomaly_detection >> bias_detection >> dvc_commit_push >> send_email
