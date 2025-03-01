@@ -1,0 +1,42 @@
+stages:
+  download_data:
+    cmd: python mlops_core/data_ingestion.py
+    deps:
+      - mlops_core/data_ingestion.py
+    outs:
+      - data/raw/reviews.csv
+
+  preprocess_data:
+    cmd: python mlops_core/data_preprocessing.py
+    deps:
+      - mlops_core/data_preprocessing.py
+      - data/raw/reviews.csv
+    outs:
+      - data/processed/reviews.parquet
+
+  validate_schema:
+    cmd: python mlops_core/schema_validator.py
+    deps:
+      - mlops_core/schema_validator.py
+      - data/processed/reviews.parquet
+    outs:
+      - validation/schema.pbtxt
+      - validation/reference_stats.pb
+
+  detect_anomalies:
+    cmd: python mlops_core/anomalies.py
+    deps:
+      - mlops_core/anomalies.py
+      - validation/schema.pbtxt
+      - data/processed/reviews.parquet
+    outs:
+      - validation/new_stats.pb
+
+  detect_bias:
+    cmd: python mlops_core/bias_detector.py
+    deps:
+      - mlops_core/bias_detector.py
+      - validation/reference_stats.pb
+      - validation/new_stats.pb
+    outs:
+      - validation/bias_report.txt

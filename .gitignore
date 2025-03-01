@@ -1,0 +1,26 @@
+# Python
+*.pyc
+*.log
+__pycache__/
+venv/
+*.egg-info/
+*.swp
+*.DS_Store
+# Airflow
+airflow.db
+# DVC
+.dvc/tmp/
+.dvc/cache/
+data/.dvc
+# Docker
+/docker-compose.override.yml
+# MLFlow
+mlruns
+# Great Expectations
+great_expectations/uncommitted/
+
+logs/
+config/key.json
+.env
+data/
+validation/
