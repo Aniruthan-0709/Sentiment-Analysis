@@ -1,0 +1,9 @@
+data/
+validation/
+logs/
+config/key.json
+.env
+.dvc/tmp/
+.dvc/cache/
+/data
+/validation

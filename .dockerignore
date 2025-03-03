@@ -1,0 +1,28 @@
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore logs
+logs/
+
+# Ignore data files (raw and processed)
+data/
+
+# Ignore DVC cache and temporary files
+.dvc/
+.dvc/cache/
+.dvc/tmp/
+
+# Ignore validation outputs
+validation/
+
+# Ignore Git-related files
+.git/
+.gitignore
+
+# Ignore Airflow SQLite database (if used)
+airflow.db
+
+# Ignore Docker-related files (optional)
+.dockerignore

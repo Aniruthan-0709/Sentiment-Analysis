@@ -1,0 +1,93 @@
+version: '3.8'
+
+x-airflow-common:
+  &airflow-common
+  image: custom-airflow:latest
+  environment:
+    &airflow-env
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@test2-postgres-1/airflow
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@test2-postgres-1/airflow
+    AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__WEBSERVER__SECRET_KEY: "your-strong-secret-key"
+    AIRFLOW__SMTP__SMTP_HOST: smtp.gmail.com
+    AIRFLOW__SMTP__SMTP_PORT: 587
+    AIRFLOW__SMTP__SMTP_USER: aniruthanhpe@gmail.com
+    AIRFLOW__SMTP__SMTP_PASSWORD: hwxl fnyb nxcs vmyf
+    AIRFLOW__SMTP__SMTP_MAIL_FROM: aniruthanhpe@gmail.com
+  volumes:
+    - ./dags:/opt/airflow/dags/
+    - ./config:/opt/airflow/config/
+    - ./mlops_core:/opt/airflow/mlops_core/
+    - ./init.sh:/init.sh
+  depends_on:
+    test2-postgres-1:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  env_file:
+    - .env
+
+services:
+  test2-postgres-1:
+    container_name: test2-postgres-1
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+    networks:
+      default:
+        aliases:
+          - test2-postgres-1
+
+  redis:
+    image: redis:latest
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    command: airflow db init
+    depends_on:
+      test2-postgres-1:
+        condition: service_healthy
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      retries: 5
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-worker:
+    <<: *airflow-common
+    command: celery worker
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-db-volume:
